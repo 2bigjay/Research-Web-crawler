@@ -17,7 +17,7 @@ phase-by-phase and documented publicly.
 
 ## Current Status
 
-**Phase 0 — Project Foundation** (in progress)
+**Phase 0 — Project Foundation** (done)
 
 A minimal Express server with a health check endpoint running at `GET /api/health`.
 
