@@ -1,0 +1,27 @@
+{
+  "name": "research-crawler",
+  "version": "0.1.0",
+  "description": "A responsible web crawler & research API built with Node.js and Express. Learning project developed phase-by-phase.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "crawler",
+    "research",
+    "scraper",
+    "api",
+    "express",
+    "web-scraping"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}
