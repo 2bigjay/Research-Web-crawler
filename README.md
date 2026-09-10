@@ -17,10 +17,11 @@ phase-by-phase and documented publicly.
 
 ## Current Status
 
-**Phase 1 — HTTP & Web Fundamentals** (done)
+**Phase 2 — HTML Parsing & Scraping** (done)
 
-Phase 0 set up the Express foundation; Phase 1 added a web-fetching service that
-retrieves a permitted public page's HTML and inspects its HTTP details.
+Phase 1 added HTTP fetching; Phase 2 adds Cheerio-based scraping to turn raw HTML
+into structured data (title, headings, paragraphs, links, metadata) — while
+teaching the crawl (discover pages) vs scrape (extract from a page) distinction.
 
 Each phase is documented under [`docs/phases/`](docs/phases/).
 
@@ -28,6 +29,7 @@ Each phase is documented under [`docs/phases/`](docs/phases/).
 |---|-------|--------|
 | 0 | Project Foundation | ✅ Done |
 | 1 | HTTP & Web Fundamentals | ✅ Done |
+| 2 | HTML Parsing & Scraping | ✅ Done |
 | 2 | HTML Parsing & Scraping | ⬜ Pending |
 | 3 | Crawler Engine | ⬜ Pending |
 | 4 | Research Extraction Engine | ⬜ Pending |
@@ -105,6 +107,15 @@ npm run fetch-demo -- https://example.com
 npm run fetch-demo -- https://example.com --timeout 5000   # custom timeout (ms)
 ```
 
+### Scrape a page (Phase 2 demo)
+
+Fetch a permitted public page and print its scraped structure (title, headings,
+paragraphs, links, metadata):
+
+```bash
+npm run scrape-demo -- https://example.com
+```
+
 ---
 
 ## API Endpoints
@@ -134,9 +145,11 @@ research-crawler/
 ├── src/
 │   ├── server.js             # Express server entry point
 │   ├── services/
-│   │   └── webFetcherService.js  # Phase 1: fetch + timeout + HTTP metadata
+│   │   ├── webFetcherService.js  # Phase 1: fetch + timeout + HTTP metadata
+│   │   └── scraperService.js     # Phase 2: Cheerio HTML → structured data
 │   └── scripts/
-│       └── fetch-demo.js     # Phase 1: CLI harness for the fetcher
+│       ├── fetch-demo.js     # Phase 1: CLI harness for the fetcher
+│       └── scrape-demo.js    # Phase 2: CLI harness for the scraper
 ├── docs/
 │   └── phases/               # Phase-by-phase documentation
 ├── .env                      # Local env vars (gitignored)
@@ -153,7 +166,7 @@ Structure evolves phase-by-phase — files are added only when their phase requi
 ## Documentation
 
 - Phase documentation: [`docs/phases/`](docs/phases/)
-- Current: [`docs/phases/phase-01.md`](docs/phases/phase-01.md)
+- Current: [`docs/phases/phase-02.md`](docs/phases/phase-02.md)
 
 ---
 
