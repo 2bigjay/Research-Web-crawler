@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "fetch-demo": "node src/scripts/fetch-demo.js"
+    "fetch-demo": "node src/scripts/fetch-demo.js",
+    "scrape-demo": "node src/scripts/scrape-demo.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -22,6 +23,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1"
   }
