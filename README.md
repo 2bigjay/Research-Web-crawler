@@ -17,16 +17,17 @@ phase-by-phase and documented publicly.
 
 ## Current Status
 
-**Phase 0 — Project Foundation** (done)
+**Phase 1 — HTTP & Web Fundamentals** (done)
 
-A minimal Express server with a health check endpoint running at `GET /api/health`.
+Phase 0 set up the Express foundation; Phase 1 added a web-fetching service that
+retrieves a permitted public page's HTML and inspects its HTTP details.
 
 Each phase is documented under [`docs/phases/`](docs/phases/).
 
 | # | Phase | Status |
 |---|-------|--------|
 | 0 | Project Foundation | ✅ Done |
-| 1 | HTTP & Web Fundamentals | ⬜ Pending |
+| 1 | HTTP & Web Fundamentals | ✅ Done |
 | 2 | HTML Parsing & Scraping | ⬜ Pending |
 | 3 | Crawler Engine | ⬜ Pending |
 | 4 | Research Extraction Engine | ⬜ Pending |
@@ -94,6 +95,16 @@ cp .env.example .env
 |----------|-------------|---------|
 | `PORT` | Port the API listens on | `4000` |
 
+### Fetch a page (Phase 1 demo)
+
+Fetch any permitted public webpage and inspect its HTTP details (status,
+headers, content type, HTML preview):
+
+```bash
+npm run fetch-demo -- https://example.com
+npm run fetch-demo -- https://example.com --timeout 5000   # custom timeout (ms)
+```
+
 ---
 
 ## API Endpoints
@@ -121,11 +132,15 @@ Response:
 ```
 research-crawler/
 ├── src/
-│   └── server.js          # Express server entry point
+│   ├── server.js             # Express server entry point
+│   ├── services/
+│   │   └── webFetcherService.js  # Phase 1: fetch + timeout + HTTP metadata
+│   └── scripts/
+│       └── fetch-demo.js     # Phase 1: CLI harness for the fetcher
 ├── docs/
-│   └── phases/            # Phase-by-phase documentation
-├── .env                   # Local env vars (gitignored)
-├── .env.example           # Env template to commit
+│   └── phases/               # Phase-by-phase documentation
+├── .env                      # Local env vars (gitignored)
+├── .env.example              # Env template to commit
 ├── .gitignore
 ├── package.json
 └── README.md
@@ -138,7 +153,7 @@ Structure evolves phase-by-phase — files are added only when their phase requi
 ## Documentation
 
 - Phase documentation: [`docs/phases/`](docs/phases/)
-- Current: [`docs/phases/phase-00.md`](docs/phases/phase-00.md)
+- Current: [`docs/phases/phase-01.md`](docs/phases/phase-01.md)
 
 ---
 
