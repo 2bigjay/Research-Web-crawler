@@ -6,7 +6,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "fetch-demo": "node src/scripts/fetch-demo.js"
   },
   "engines": {
     "node": ">=18.0.0"
