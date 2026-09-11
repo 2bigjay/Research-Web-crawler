@@ -17,11 +17,11 @@ phase-by-phase and documented publicly.
 
 ## Current Status
 
-**Phase 2 — HTML Parsing & Scraping** (done)
+**Phase 3 — Crawler Engine** (done)
 
-Phase 1 added HTTP fetching; Phase 2 adds Cheerio-based scraping to turn raw HTML
-into structured data (title, headings, paragraphs, links, metadata) — while
-teaching the crawl (discover pages) vs scrape (extract from a page) distinction.
+Phases 1–2 gave fetch + scrape; Phase 3 combines them into a crawler with a URL
+queue, visited-set deduplication, depth/page limits, same-domain restriction,
+and politeness delays — all configurable via env.
 
 Each phase is documented under [`docs/phases/`](docs/phases/).
 
@@ -30,6 +30,7 @@ Each phase is documented under [`docs/phases/`](docs/phases/).
 | 0 | Project Foundation | ✅ Done |
 | 1 | HTTP & Web Fundamentals | ✅ Done |
 | 2 | HTML Parsing & Scraping | ✅ Done |
+| 3 | Crawler Engine | ✅ Done |
 | 2 | HTML Parsing & Scraping | ⬜ Pending |
 | 3 | Crawler Engine | ⬜ Pending |
 | 4 | Research Extraction Engine | ⬜ Pending |
@@ -116,6 +117,18 @@ paragraphs, links, metadata):
 npm run scrape-demo -- https://example.com
 ```
 
+### Crawl a site (Phase 3 demo)
+
+Crawl a permitted public site with safety limits, printing a crawl summary
+(queue, depth, dedupe, errors):
+
+```bash
+npm run crawl-demo -- https://books.toscrape.com --max-pages 9 --delay 300
+```
+
+Defaults come from `.env` (`CRAWL_MAX_PAGES=20`, `CRAWL_MAX_DEPTH=2`, ...); flags
+override them per run.
+
 ---
 
 ## API Endpoints
@@ -146,10 +159,14 @@ research-crawler/
 │   ├── server.js             # Express server entry point
 │   ├── services/
 │   │   ├── webFetcherService.js  # Phase 1: fetch + timeout + HTTP metadata
-│   │   └── scraperService.js     # Phase 2: Cheerio HTML → structured data
+│   │   ├── scraperService.js     # Phase 2: Cheerio HTML → structured data
+│   │   └── crawlerService.js     # Phase 3: queue, visited set, depth/page caps
+│   ├── utils/
+│   │   └── urlUtils.js       # Phase 3: URL normalization + same-domain check
 │   └── scripts/
 │       ├── fetch-demo.js     # Phase 1: CLI harness for the fetcher
-│       └── scrape-demo.js    # Phase 2: CLI harness for the scraper
+│       ├── scrape-demo.js    # Phase 2: CLI harness for the scraper
+│       └── crawl-demo.js     # Phase 3: CLI harness for the crawler
 ├── docs/
 │   └── phases/               # Phase-by-phase documentation
 ├── .env                      # Local env vars (gitignored)
@@ -166,7 +183,7 @@ Structure evolves phase-by-phase — files are added only when their phase requi
 ## Documentation
 
 - Phase documentation: [`docs/phases/`](docs/phases/)
-- Current: [`docs/phases/phase-02.md`](docs/phases/phase-02.md)
+- Current: [`docs/phases/phase-03.md`](docs/phases/phase-03.md)
 
 ---
 
