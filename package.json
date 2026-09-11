@@ -9,7 +9,8 @@
     "dev": "node --watch src/server.js",
     "fetch-demo": "node src/scripts/fetch-demo.js",
     "scrape-demo": "node src/scripts/scrape-demo.js",
-    "crawl-demo": "node src/scripts/crawl-demo.js"
+    "crawl-demo": "node src/scripts/crawl-demo.js",
+    "extract-demo": "node src/scripts/extract-demo.js"
   },
   "engines": {
     "node": ">=18.0.0"

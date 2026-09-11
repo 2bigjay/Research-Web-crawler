@@ -42,6 +42,9 @@ export function scrapePage(html, pageUrl) {
     // The canonical URL is the site's own statement of "this is the real URL
     // for this page" — more trustworthy than whatever URL we arrived at.
     const canonical = $('link[rel="canonical"]').attr('href') ?? '';
+    // The site's own name (og:site_name) is more reliable than parsing it out
+    // of the page title. Research extractors (Phase 4) use it for entity names.
+    const siteName = $('meta[property="og:site_name"]').attr('content') ?? '';
 
     const headings = [];
     $('h1, h2, h3').each((_, el) => {
@@ -54,6 +57,20 @@ export function scrapePage(html, pageUrl) {
     $('p').each((_, el) => {
         const text = cleanText($(el).text());
         if (text) paragraphs.push(text);
+    });
+
+    // Short list items (navigation, product lists, feature lists). Research
+    // extractors probe these for structured hints such as product names.
+    // Kept short (≤60 chars) so nav menus don't flood the extraction with
+    // long sentence fragments.
+    const listItems = [];
+    const seenItems = new Set();
+    $('li').each((_, el) => {
+        const text = cleanText($(el).text());
+        if (text && text.length <= 60 && !seenItems.has(text)) {
+            seenItems.add(text);
+            listItems.push(text);
+        }
     });
 
     // Collect outbound links as absolute URLs, skipping duplicates.
@@ -73,8 +90,10 @@ export function scrapePage(html, pageUrl) {
         metaDescription,
         metaKeywords,
         canonical,
+        siteName,
         headings,
         paragraphs,
+        listItems,
         links
     };
 }
