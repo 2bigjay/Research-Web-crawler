@@ -17,11 +17,12 @@ phase-by-phase and documented publicly.
 
 ## Current Status
 
-**Phase 3 — Crawler Engine** (done)
+**Phase 4 — Research Extraction Engine** (done)
 
-Phases 1–2 gave fetch + scrape; Phase 3 combines them into a crawler with a URL
-queue, visited-set deduplication, depth/page limits, same-domain restriction,
-and politeness delays — all configurable via env.
+Phase 3 crawls pages; Phase 4 interprets them per research topic. A registry of
+extractors turns scraped pages into structured items (e.g. `robotics-companies`
+→ name, description, products, country, website, relevant links) — designed so
+new topics are added as new modules.
 
 Each phase is documented under [`docs/phases/`](docs/phases/).
 
@@ -31,6 +32,7 @@ Each phase is documented under [`docs/phases/`](docs/phases/).
 | 1 | HTTP & Web Fundamentals | ✅ Done |
 | 2 | HTML Parsing & Scraping | ✅ Done |
 | 3 | Crawler Engine | ✅ Done |
+| 4 | Research Extraction Engine | ✅ Done |
 | 2 | HTML Parsing & Scraping | ⬜ Pending |
 | 3 | Crawler Engine | ⬜ Pending |
 | 4 | Research Extraction Engine | ⬜ Pending |
@@ -129,6 +131,16 @@ npm run crawl-demo -- https://books.toscrape.com --max-pages 9 --delay 300
 Defaults come from `.env` (`CRAWL_MAX_PAGES=20`, `CRAWL_MAX_DEPTH=2`, ...); flags
 override them per run.
 
+### Research extraction (Phase 4 demo)
+
+Crawl a site and turn each page into a structured research item:
+
+```bash
+npm run extract-demo -- https://www.universal-robots.com --topic robotics-companies
+```
+
+Registered topics: `robotics-companies` (more added per topic in later phases).
+
 ---
 
 ## API Endpoints
@@ -159,14 +171,19 @@ research-crawler/
 │   ├── server.js             # Express server entry point
 │   ├── services/
 │   │   ├── webFetcherService.js  # Phase 1: fetch + timeout + HTTP metadata
-│   │   ├── scraperService.js     # Phase 2: Cheerio HTML → structured data
-│   │   └── crawlerService.js     # Phase 3: queue, visited set, depth/page caps
+│   │   ├── scraperService.js     # Phase 2/4: Cheerio HTML → structured data
+│   │   ├── crawlerService.js     # Phase 3: queue, visited set, depth/page caps
+│   │   ├── extractionService.js  # Phase 4: topic registry + extractResearch()
+│   │   └── extractors/
+│   │       ├── index.js          # Phase 4: registers built-in extractors
+│   │       └── roboticsCompanies.js  # Phase 4: research topic #1
 │   ├── utils/
 │   │   └── urlUtils.js       # Phase 3: URL normalization + same-domain check
 │   └── scripts/
 │       ├── fetch-demo.js     # Phase 1: CLI harness for the fetcher
 │       ├── scrape-demo.js    # Phase 2: CLI harness for the scraper
-│       └── crawl-demo.js     # Phase 3: CLI harness for the crawler
+│       ├── crawl-demo.js     # Phase 3: CLI harness for the crawler
+│       └── extract-demo.js   # Phase 4: CLI harness for research extraction
 ├── docs/
 │   └── phases/               # Phase-by-phase documentation
 ├── .env                      # Local env vars (gitignored)
@@ -183,7 +200,7 @@ Structure evolves phase-by-phase — files are added only when their phase requi
 ## Documentation
 
 - Phase documentation: [`docs/phases/`](docs/phases/)
-- Current: [`docs/phases/phase-03.md`](docs/phases/phase-03.md)
+- Current: [`docs/phases/phase-04.md`](docs/phases/phase-04.md)
 
 ---
 
