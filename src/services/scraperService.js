@@ -5,14 +5,10 @@
 // "Crawling" — discovering OTHER pages from the links — arrives in Phase 3.
 
 import * as cheerio from 'cheerio';
+import { cleanText } from '../utils/textUtils.js'; // Phase 5: shared text cleaning
 
-// Light text cleanup so scraped values read sensibly. Raw HTML text is full of
-// newlines, indentation, and stray spacing (e.g. "Hello\n      world").
-// Heavy-duty normalization (HTML entities, deduplication, malformed URLs)
-// is deliberately left for Phase 5 — scraping and cleaning are separate steps.
-function cleanText(value) {
-    return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
-}
+// (Light cleansing of extracted values. Heavier cleaning — entity decoding,
+// deduplication, malformed-URL repair — lives in cleaningService (Phase 5).)
 
 // Resolve a possibly-relative href against the page URL.
 // Examples:  href="/about"  +  baseUrl "https://site.com/start"

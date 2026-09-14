@@ -40,6 +40,23 @@ export function getHostname(value) {
     }
 }
 
+// Fix, validate, and normalize a URL string — or return null when unfixable.
+// Handles malformed input the way crawled sites actually produce it:
+//   1. trims surrounding whitespace and stray quotes
+//   2. if there is no scheme, tries https:// first
+//   3. normalizes the result (see normalizeUrl)
+// A link that still won't parse is dropped (null) rather than shipped broken.
+export function repairUrl(value) {
+    if (value === null || value === undefined) return null;
+    let candidate = String(value).trim().replace(/^["']+|["']+$/g, '');
+    if (candidate === '') return null;
+    // "example.com/about" -> "https://example.com/about"
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(candidate)) {
+        candidate = `https://${candidate}`;
+    }
+    return normalizeUrl(candidate);
+}
+
 // Does candidate live on the same website as base?
 // Comparing hostnames is the key trick: it lets the crawler never leave the
 // site it started on, even when a page links out (Phase 2's Wikipedia example
