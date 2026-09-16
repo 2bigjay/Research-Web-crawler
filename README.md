@@ -17,11 +17,11 @@ phase-by-phase and documented publicly.
 
 ## Current Status
 
-**Phase 7 — Research REST API** (done)
+**Phase 8 — Security & Responsible Crawling** (done)
 
-A REST API now wraps everything: start crawls, list sessions, and
-list/search/inspect/delete research results — with declarative validation,
-pagination, filtering, sorting, and honest HTTP status codes.
+The API is hardened: rate limits (a tight one for crawls specifically), Helmet
+security headers, CORS policy, and opt-in API-key auth on write endpoints.
+Reads stay public; nobody can turn the crawler into a hammer.
 
 Each phase is documented under [`docs/phases/`](docs/phases/).
 
@@ -35,7 +35,7 @@ Each phase is documented under [`docs/phases/`](docs/phases/).
 | 5 | Data Processing & Cleaning | ✅ Done |
 | 6 | Database | ✅ Done |
 | 7 | Research REST API | ✅ Done |
-| 8 | Security & Responsible Crawling | ⬜ Pending |
+| 8 | Security & Responsible Crawling | ✅ Done |
 | 9 | Automation | ⬜ Pending |
 | 10 | AI Research Assistant | ⬜ Pending |
 | 11 | Frontend | ⬜ Pending |
@@ -52,6 +52,7 @@ Each phase is documented under [`docs/phases/`](docs/phases/).
 - **Environment:** dotenv
 - **Database:** MongoDB Atlas + Mongoose _(Phase 6)_
 - **Scraping:** Cheerio _(Phase 2)_
+- **Security:** Helmet, CORS, express-rate-limit, API keys _(Phase 8)_
 - **Scheduling:** node-cron _(Phase 9)_
 - **Frontend:** React + Vite _(Phase 11)_
 
@@ -101,6 +102,10 @@ cp .env.example .env
 | `CRAWL_DELAY_MS` | Politeness delay between requests | `1000` |
 | `CRAWL_TIMEOUT_MS` | Per-request timeout | `10000` |
 | `DNS_SERVERS` | Comma-separated DNS servers for Atlas SRV lookups (some networks refuse SRV queries) | unset → OS default |
+| `RATE_LIMIT_MAX` | Requests per minute per IP (all `/api`) | `120` |
+| `CRAWL_RATE_LIMIT_MAX` | Crawls per minute per IP (`POST /api/crawls`) | `10` |
+| `CORS_ORIGINS` | Comma-separated allowed CORS origins (`*` = any) | `*` |
+| `API_KEY` | Enables API-key auth on write endpoints (`x-api-key` header) | unset → open |
 
 ### Fetch a page (Phase 1 demo)
 
@@ -225,6 +230,16 @@ List responses use a pagination envelope:
 { "success": true, "data": [ ... ], "total": 12, "limit": 5, "skip": 0 }
 ```
 
+### Security (Phase 8)
+
+- **Rate limits:** 120 requests/min per IP API-wide; crawls get a tighter
+  `10/min`. Both env-tunable; `GET /api/health` is never throttled.
+- **Headers:** Helmet defaults + `X-Powered-By` removed.
+- **CORS:** origin whitelist via `CORS_ORIGINS`.
+- **Auth (opt-in):** set `API_KEY` in `.env`, then `POST /api/crawls` and
+  `DELETE /api/research/:id` require `x-api-key: <key>`; reads stay public.
+- Current limits/auth/CORS are reported in `GET /api/health`.
+
 ### Errors
 
 Validation → `400` with field-level `errors`; malformed ObjectId → `400`;
@@ -246,7 +261,10 @@ research-crawler/
 │   │   └── researchController.js  # Phase 7: HTTP glue for /api/research
 │   ├── middlewares/
 │   │   ├── validationMiddleware.js # Phase 7: runs express-validator chains → 400
-│   │   └── errorMiddleware.js      # Phase 7: 404 + central error handler
+│   │   ├── errorMiddleware.js      # Phase 7: 404 + central error handler
+│   │   ├── rateLimiters.js         # Phase 8: api + crawl rate limits
+│   │   ├── securityMiddleware.js   # Phase 8: helmet + CORS
+│   │   └── authMiddleware.js       # Phase 8: opt-in API-key auth on writes
 │   ├── routes/
 │   │   ├── crawlerRoutes.js        # Phase 7: POST/GET crawls
 │   │   └── researchRoutes.js       # Phase 7: GET/DELETE research
@@ -289,7 +307,7 @@ Structure evolves phase-by-phase — files are added only when their phase requi
 ## Documentation
 
 - Phase documentation: [`docs/phases/`](docs/phases/)
-- Current: [`docs/phases/phase-07.md`](docs/phases/phase-07.md)
+- Current: [`docs/phases/phase-08.md`](docs/phases/phase-08.md)
 
 ---
 
