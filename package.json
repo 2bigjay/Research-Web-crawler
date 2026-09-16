@@ -11,7 +11,8 @@
     "scrape-demo": "node src/scripts/scrape-demo.js",
     "crawl-demo": "node src/scripts/crawl-demo.js",
     "extract-demo": "node src/scripts/extract-demo.js",
-    "clean-demo": "node src/scripts/clean-demo.js"
+    "clean-demo": "node src/scripts/clean-demo.js",
+    "db-demo": "node src/scripts/db-demo.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -28,6 +29,7 @@
   "dependencies": {
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "mongoose": "^9.10.1"
   }
 }
