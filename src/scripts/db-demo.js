@@ -39,8 +39,8 @@ try {
     const saved = await getCrawlSession(session._id);
     console.log(`Read back session: started ${saved.startTime.toISOString()}, finished ${saved.endTime.toISOString()}`);
 
-    const results = await getResearchResults({ session: session._id });
-    console.log(`\nResearch results in this session: ${results.length}`);
+    const { data: results, total } = await getResearchResults({ session: session._id });
+    console.log(`\nResearch results in this session: ${total}`);
     for (const r of results.slice(0, 5)) {
         console.log('----------------------------------------');
         console.log(`  title    : ${r.title}`);

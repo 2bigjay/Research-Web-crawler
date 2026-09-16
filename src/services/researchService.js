@@ -78,12 +78,46 @@ export async function getCrawlSessions({ limit = 20, skip = 0 } = {}) {
         .skip(skip);
 }
 
-export async function getResearchResults({ session, topic, limit = 20, skip = 0 } = {}) {
+export async function countCrawlSessions(filter = {}) {
+    return CrawlSession.countDocuments(filter);
+}
+
+// Results are returned as { data, total } so controllers can build honest
+// pagination (Phase 7) without a second query.
+export async function getResearchResults({ session, topic, source, limit = 20, skip = 0, sort = 'crawledAt', order = 'desc' } = {}) {
     const filter = {};
     if (session) filter.session = session;
     if (topic) filter.topic = topic;
-    return ResearchResult.find(filter)
+    if (source) filter.source = source;
+    const data = await ResearchResult.find(filter)
+        .sort({ [sort]: order === 'asc' ? 1 : -1 })
+        .limit(limit)
+        .skip(skip);
+    const total = await ResearchResult.countDocuments(filter);
+    return { data, total };
+}
+
+export async function getResearchResult(resultId) {
+    return ResearchResult.findById(resultId);
+}
+
+export async function deleteResearchResult(resultId) {
+    return ResearchResult.findByIdAndDelete(resultId);
+}
+
+// Free-text search across the searchable fields. Tagged with \b-boundaries and
+// regex-escaped so user input can't inject into the query.
+export async function searchResearchResults({ q, limit = 20, skip = 0 } = {}) {
+    const filter = {};
+    if (q) {
+        const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rx = new RegExp(escaped, 'i');
+        filter.$or = [{ title: rx }, { source: rx }, { url: rx }, { content: rx }];
+    }
+    const data = await ResearchResult.find(filter)
         .sort({ crawledAt: -1 })
         .limit(limit)
         .skip(skip);
+    const total = await ResearchResult.countDocuments(filter);
+    return { data, total };
 }
