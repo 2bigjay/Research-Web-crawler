@@ -7,11 +7,13 @@ import { Router } from 'express';
 import { body, query, param } from 'express-validator';
 import { startCrawl, listCrawls, getCrawl } from '../controllers/crawlerController.js';
 import { validate } from '../middlewares/validationMiddleware.js';
+import { requireApiKey } from '../middlewares/authMiddleware.js';
 import { getTopics } from '../services/extractionService.js';
 
 const router = Router();
 
-router.post('/', [
+// Writes (starting a crawl) are protected when API_KEY auth is enabled.
+router.post('/', requireApiKey, [
     body('startUrl')
         .trim()
         .notEmpty()

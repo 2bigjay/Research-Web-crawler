@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { query, param } from 'express-validator';
 import { listResults, searchResults, getResult, deleteResult } from '../controllers/researchController.js';
 import { validate } from '../middlewares/validationMiddleware.js';
+import { requireApiKey } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
@@ -63,7 +64,8 @@ router.get('/:id', [
     param('id').isMongoId().withMessage('id must be a valid MongoDB ObjectId')
 ], validate, getResult);
 
-router.delete('/:id', [
+// Writes (deleting a result) are protected when API_KEY auth is enabled.
+router.delete('/:id', requireApiKey, [
     param('id').isMongoId().withMessage('id must be a valid MongoDB ObjectId')
 ], validate, deleteResult);
 
