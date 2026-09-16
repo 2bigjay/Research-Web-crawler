@@ -5,8 +5,32 @@
 // The app must run WITHOUT a database (Phase 1–5 demos, health checks) but be
 // fully functional WITH one. So connecting is explicit and optional: callers
 // decide when to connect, and failures are logged, not fatal.
+//
+// dotenv is loaded HERE so that ANY consumer of this module (the server, the
+// db-demo script, future test scripts) sees the same MONGODB_URI without each
+// remembering to call dotenv.config() themselves.
 
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import dns from 'node:dns';
+
+dotenv.config({ quiet: true });
+
+// Some networks' DNS resolvers refuse SRV lookups, which Atlas needs
+// (error: "querySrv ECONNREFUSED _mongodb._tcp.<cluster>.mongodb.net").
+// Allow ops to point Node's resolver at servers that answer SRV records:
+//   DNS_SERVERS=8.8.8.8,1.1.1.1
+// When unset, the OS default resolver is used. Opt-in, never hardcoded.
+function applyCustomDnsServers() {
+    const raw = process.env.DNS_SERVERS;
+    if (!raw) return;
+    const servers = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    if (servers.length > 0) {
+        dns.setServers(servers);
+        console.log(`Using custom DNS servers: ${servers.join(', ')}`);
+    }
+}
+applyCustomDnsServers();
 
 export const DEFAULT_MONGODB_URI = 'mongodb://127.0.0.1:27017/research_crawler';
 

@@ -1,27 +1,25 @@
 // src/server.js
 // Entry point for the Research Web Crawler & API.
-//
-// Phase 0 scope: a minimal Express server with a health check.
-// Nothing else yet — crawler, database, API routes arrive in later phases.
 
 import express from 'express';
 import dotenv from 'dotenv';
 import { connectDatabase, databaseStatusText } from './config/database.js';
+import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
+import crawlerRoutes from './routes/crawlerRoutes.js';
+import researchRoutes from './routes/researchRoutes.js';
+import './services/extractors/index.js'; // register research topic extractors
 
 // Load variables from the .env file into process.env.
 // This must be one of the first things we do, because everything below it
 // may read settings like process.env.PORT.
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const app = express();
 
-// Parse incoming JSON request bodies. The health check does not send a body,
-// but this becomes necessary the moment clients start POSTing JSON to us.
+// Parse incoming JSON request bodies.
 app.use(express.json());
 
 // Health check — confirms the API is running and responding.
-// Used by humans, monitoring tools, and later by deployment platforms.
-// Also reports database state so health reflects the whole system.
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         status: 'ok',
@@ -31,25 +29,15 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// 404 handler — runs when no other route matched the request.
-// Returning JSON keeps the API's responses consistent.
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: `Route not found: ${req.method} ${req.originalUrl}`
-    });
-});
+// Phase 7: the research REST API.
+app.use('/api/crawls', crawlerRoutes);
+app.use('/api/research', researchRoutes);
 
-// Central error handler. Express recognizes a middleware with 4 parameters
-// as an error handler and forwards errors here automatically.
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
-    console.error('Unhandled error:', err);
-    res.status(500).json({
-        success: false,
-        message: 'Internal server error'
-    });
-});
+// 404 handler — runs when no other route matched the request.
+app.use(notFound);
+
+// Central error handler.
+app.use(errorHandler);
 
 // Port comes from the environment so it can differ between local dev,
 // testing, and production without touching code.
