@@ -17,11 +17,11 @@ phase-by-phase and documented publicly.
 
 ## Current Status
 
-**Phase 6 — Database** (done)
+**Phase 7 — Research REST API** (done)
 
-Everything now persists: `CrawlSession` + `ResearchResult` schemas in Mongo
-(Mongoose), authenticated against MongoDB Atlas. The server runs DB-less too —
-with the `database` state surfaced in `/api/health`.
+A REST API now wraps everything: start crawls, list sessions, and
+list/search/inspect/delete research results — with declarative validation,
+pagination, filtering, sorting, and honest HTTP status codes.
 
 Each phase is documented under [`docs/phases/`](docs/phases/).
 
@@ -34,12 +34,7 @@ Each phase is documented under [`docs/phases/`](docs/phases/).
 | 4 | Research Extraction Engine | ✅ Done |
 | 5 | Data Processing & Cleaning | ✅ Done |
 | 6 | Database | ✅ Done |
-| 2 | HTML Parsing & Scraping | ⬜ Pending |
-| 3 | Crawler Engine | ⬜ Pending |
-| 4 | Research Extraction Engine | ⬜ Pending |
-| 5 | Data Processing & Cleaning | ⬜ Pending |
-| 6 | Database | ⬜ Pending |
-| 7 | Research REST API | ⬜ Pending |
+| 7 | Research REST API | ✅ Done |
 | 8 | Security & Responsible Crawling | ⬜ Pending |
 | 9 | Automation | ⬜ Pending |
 | 10 | AI Research Assistant | ⬜ Pending |
@@ -105,6 +100,7 @@ cp .env.example .env
 | `CRAWL_MAX_DEPTH` | Maximum link depth per crawl | `2` |
 | `CRAWL_DELAY_MS` | Politeness delay between requests | `1000` |
 | `CRAWL_TIMEOUT_MS` | Per-request timeout | `10000` |
+| `DNS_SERVERS` | Comma-separated DNS servers for Atlas SRV lookups (some networks refuse SRV queries) | unset → OS default |
 
 ### Fetch a page (Phase 1 demo)
 
@@ -189,6 +185,52 @@ Response:
 }
 ```
 
+### Crawls
+
+```
+POST /api/crawls              # run + persist a crawl (201)
+GET  /api/crawls?limit&skip   # list sessions, newest first (200)
+GET  /api/crawls/:id          # one session + its research results (200)
+```
+
+`POST /api/crawls` body (topic defaults to `robotics-companies`):
+
+```json
+{
+  "startUrl": "https://www.universal-robots.com",
+  "topic": "robotics-companies",
+  "maxPages": 5,
+  "requestDelayMs": 500
+}
+```
+
+Limits are bounded for responsible crawling: `maxPages` 1–50, `maxDepth` 0–3,
+`requestDelayMs` 250–60000, `timeoutMs` 1000–120000.
+
+### Research results
+
+```
+GET    /api/research?topic&session&source&sort&order&limit&skip   # filtered list (200)
+GET    /api/research/search?q=example&limit&skip                   # free-text search (200)
+GET    /api/research/:id                                           # one result (200)
+DELETE /api/research/:id                                           # remove (204)
+```
+
+`sort` whitelist: `crawledAt` (default), `createdAt`, `title`, `source`,
+`depth`; `order`: `asc` | `desc`.
+
+List responses use a pagination envelope:
+
+```json
+{ "success": true, "data": [ ... ], "total": 12, "limit": 5, "skip": 0 }
+```
+
+### Errors
+
+Validation → `400` with field-level `errors`; malformed ObjectId → `400`;
+unknown resource → `404`; duplicates → `409`; database down → `503`;
+anything else → `500`.
+
 ---
 
 ## Project Structure
@@ -198,14 +240,23 @@ research-crawler/
 ├── src/
 │   ├── server.js             # Express server entry point (+ optional DB connect)
 │   ├── config/
-│   │   └── database.js       # Phase 6: mongoose connect/disconnect/status
+│   │   └── database.js       # Phase 6/7: mongoose connect/disconnect/status, dotenv, DNS override
+│   ├── controllers/
+│   │   ├── crawlerController.js   # Phase 7: HTTP glue for /api/crawls
+│   │   └── researchController.js  # Phase 7: HTTP glue for /api/research
+│   ├── middlewares/
+│   │   ├── validationMiddleware.js # Phase 7: runs express-validator chains → 400
+│   │   └── errorMiddleware.js      # Phase 7: 404 + central error handler
+│   ├── routes/
+│   │   ├── crawlerRoutes.js        # Phase 7: POST/GET crawls
+│   │   └── researchRoutes.js       # Phase 7: GET/DELETE research
 │   ├── services/
 │   │   ├── webFetcherService.js  # Phase 1: fetch + timeout + HTTP metadata
 │   │   ├── scraperService.js     # Phase 2/4: Cheerio HTML → structured data
 │   │   ├── crawlerService.js     # Phase 3: queue, visited set, depth/page caps
 │   │   ├── extractionService.js  # Phase 4: topic registry + extractResearch()
 │   │   ├── cleaningService.js    # Phase 5: clean items + dedupe pages
-│   │   ├── researchService.js    # Phase 6: save/query sessions + results
+│   │   ├── researchService.js    # Phase 6/7: save/query sessions + results
 │   │   └── extractors/
 │   │       ├── index.js          # Phase 4: registers built-in extractors
 │   │       └── roboticsCompanies.js  # Phase 4: research topic #1
@@ -238,7 +289,7 @@ Structure evolves phase-by-phase — files are added only when their phase requi
 ## Documentation
 
 - Phase documentation: [`docs/phases/`](docs/phases/)
-- Current: [`docs/phases/phase-06.md`](docs/phases/phase-06.md)
+- Current: [`docs/phases/phase-07.md`](docs/phases/phase-07.md)
 
 ---
 
