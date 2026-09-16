@@ -17,12 +17,11 @@ phase-by-phase and documented publicly.
 
 ## Current Status
 
-**Phase 5 — Data Processing & Cleaning** (done)
+**Phase 6 — Database** (done)
 
-Phase 4 extracts; Phase 5 cleans: whitespace, HTML entities, empty fields,
-duplicates and duplicate pages (`/` vs `/index.html`) are handled by reusable
-utilities (`textUtils`, `urlUtils.repairUrl`, `cleaningService`) before results
-are stored.
+Everything now persists: `CrawlSession` + `ResearchResult` schemas in Mongo
+(Mongoose), authenticated against MongoDB Atlas. The server runs DB-less too —
+with the `database` state surfaced in `/api/health`.
 
 Each phase is documented under [`docs/phases/`](docs/phases/).
 
@@ -34,6 +33,7 @@ Each phase is documented under [`docs/phases/`](docs/phases/).
 | 3 | Crawler Engine | ✅ Done |
 | 4 | Research Extraction Engine | ✅ Done |
 | 5 | Data Processing & Cleaning | ✅ Done |
+| 6 | Database | ✅ Done |
 | 2 | HTML Parsing & Scraping | ⬜ Pending |
 | 3 | Crawler Engine | ⬜ Pending |
 | 4 | Research Extraction Engine | ⬜ Pending |
@@ -100,6 +100,11 @@ cp .env.example .env
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | Port the API listens on | `4000` |
+| `MONGODB_URI` | MongoDB connection string (Atlas `mongodb+srv://` or localhost) | unset → no persistence |
+| `CRAWL_MAX_PAGES` | Maximum pages per crawl | `20` |
+| `CRAWL_MAX_DEPTH` | Maximum link depth per crawl | `2` |
+| `CRAWL_DELAY_MS` | Politeness delay between requests | `1000` |
+| `CRAWL_TIMEOUT_MS` | Per-request timeout | `10000` |
 
 ### Fetch a page (Phase 1 demo)
 
@@ -151,6 +156,18 @@ differences (entities, whitespace, empties, duplicate values/URLs repaired):
 npm run clean-demo -- https://books.toscrape.com --max-pages 8
 ```
 
+### Save a crawl to MongoDB (Phase 6 demo)
+
+Runs a small crawl, persists the session + cleaned research results to MongoDB,
+then reads them back:
+
+```bash
+npm run db-demo -- https://example.com
+npm run db-demo -- https://www.universal-robots.com --topic robotics-companies
+```
+
+Requires `MONGODB_URI` in `.env` (Atlas or local MongoDB).
+
 ---
 
 ## API Endpoints
@@ -167,6 +184,7 @@ Response:
 {
   "status": "ok",
   "message": "Research Web Crawler & API is running",
+  "database": "connected",
   "timestamp": "2026-01-01T00:00:00.000Z"
 }
 ```
@@ -178,16 +196,22 @@ Response:
 ```
 research-crawler/
 ├── src/
-│   ├── server.js             # Express server entry point
+│   ├── server.js             # Express server entry point (+ optional DB connect)
+│   ├── config/
+│   │   └── database.js       # Phase 6: mongoose connect/disconnect/status
 │   ├── services/
 │   │   ├── webFetcherService.js  # Phase 1: fetch + timeout + HTTP metadata
 │   │   ├── scraperService.js     # Phase 2/4: Cheerio HTML → structured data
 │   │   ├── crawlerService.js     # Phase 3: queue, visited set, depth/page caps
 │   │   ├── extractionService.js  # Phase 4: topic registry + extractResearch()
 │   │   ├── cleaningService.js    # Phase 5: clean items + dedupe pages
+│   │   ├── researchService.js    # Phase 6: save/query sessions + results
 │   │   └── extractors/
 │   │       ├── index.js          # Phase 4: registers built-in extractors
 │   │       └── roboticsCompanies.js  # Phase 4: research topic #1
+│   ├── models/
+│   │   ├── CrawlSession.js   # Phase 6: schema for one crawl run
+│   │   └── ResearchResult.js # Phase 6: schema for one researched page
 │   ├── utils/
 │   │   ├── urlUtils.js       # Phase 3/5: normalization, same-domain, repair
 │   │   └── textUtils.js      # Phase 5: cleanText, decodeHtmlEntities
@@ -196,7 +220,8 @@ research-crawler/
 │       ├── scrape-demo.js    # Phase 2: CLI harness for the scraper
 │       ├── crawl-demo.js     # Phase 3: CLI harness for the crawler
 │       ├── extract-demo.js   # Phase 4: CLI harness for research extraction
-│       └── clean-demo.js     # Phase 5: CLI harness for cleaning/dedupe
+│       ├── clean-demo.js     # Phase 5: CLI harness for cleaning/dedupe
+│       └── db-demo.js        # Phase 6: CLI harness for persistence
 ├── docs/
 │   └── phases/               # Phase-by-phase documentation
 ├── .env                      # Local env vars (gitignored)
@@ -213,7 +238,7 @@ Structure evolves phase-by-phase — files are added only when their phase requi
 ## Documentation
 
 - Phase documentation: [`docs/phases/`](docs/phases/)
-- Current: [`docs/phases/phase-05.md`](docs/phases/phase-05.md)
+- Current: [`docs/phases/phase-06.md`](docs/phases/phase-06.md)
 
 ---
 
