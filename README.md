@@ -23,6 +23,15 @@ The API is hardened: rate limits (a tight one for crawls specifically), Helmet
 security headers, CORS policy, and opt-in API-key auth on write endpoints.
 Reads stay public; nobody can turn the crawler into a hammer.
 
+**Phase 9 — Automation & Scheduling** (done)
+
+Crawls now run as **background jobs**. `POST /api/crawls` returns `202` + a
+pollable session id; a sequential in-memory worker drains the queue so the API
+response is instant and requests stay polite. An optional `node-cron` scheduler
+fires crawls on a schedule (e.g. nightly re-research) — see `CRAWL_SCHEDULE` +
+`SCHEDULED_START_URLS` in `.env`. Job visibility: `GET /api/jobs` and
+`GET /api/jobs/:id`; sessions also report `runType` (`manual`/`scheduled`).
+
 Each phase is documented under [`docs/phases/`](docs/phases/).
 
 | # | Phase | Status |
@@ -275,9 +284,9 @@ research-crawler/
 │   │   ├── extractionService.js  # Phase 4: topic registry + extractResearch()
 │   │   ├── cleaningService.js    # Phase 5: clean items + dedupe pages
 │   │   ├── researchService.js    # Phase 6/7: save/query sessions + results
+│   │   ├── jobQueue.js           # Phase 9: in-memory background job queue
+│   │   ├── schedulerService.js   # Phase 9: node-cron scheduled crawls
 │   │   └── extractors/
-│   │       ├── index.js          # Phase 4: registers built-in extractors
-│   │       └── roboticsCompanies.js  # Phase 4: research topic #1
 │   ├── models/
 │   │   ├── CrawlSession.js   # Phase 6: schema for one crawl run
 │   │   └── ResearchResult.js # Phase 6: schema for one researched page

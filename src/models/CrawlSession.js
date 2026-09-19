@@ -50,7 +50,15 @@ const sessionSchema = new Schema(
         // own validation error map — shadowing it can cause subtle breakage.
         crawlErrors: { type: [errorSchema], default: [] },
         startTime: { type: Date, default: Date.now },
-        endTime: { type: Date, default: null }
+        endTime: { type: Date, default: null },
+        // Phase 9: how the run was started — API (sync/async) or scheduler.
+        runType: {
+            type: String,
+            enum: ['manual', 'scheduled', 'sync'],
+            default: 'manual'
+        },
+        // Phase 9: when a run FAILS, a short human-readable reason here.
+        failure: { type: String, default: null }
     },
     { timestamps: true }
 );

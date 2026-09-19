@@ -1,32 +1,57 @@
 // src/controllers/crawlerController.js
 //
-// Phase 7: HTTP glue for crawls. Thin on purpose — request parsing and
-// response shaping only; the heavy lifting stays in crawlerService (Phase 3)
-// and researchService (Phase 6).
+// Phase 7/9: HTTP glue for crawls. Thin on purpose — request parsing and
+// response shaping only; the heavy lifting stays in crawlerService (Phase 3),
+// researchService (Phase 6) and the job queue (Phase 9).
 
 import { crawlWeb } from '../services/crawlerService.js';
-import { saveCrawl, getCrawlSession, getCrawlSessions, countCrawlSessions, getResearchResults } from '../services/researchService.js';
+import { saveCrawl, createCrawlSession, getCrawlSession, getCrawlSessions, countCrawlSessions, getResearchResults } from '../services/researchService.js';
+import { enqueueCrawlJob } from '../services/jobQueue.js';
 
-// POST /api/crawls — run a crawl synchronously, persist it, return the session.
+// POST /api/crawls
+//   { ... , "sync": false } (default): 202 — session created RUNNING, crawl queued.
+//   { ... , "sync": true }:             201 — crawl runs inline, returns completed session.
 export async function startCrawl(req, res, next) {
     try {
-        const { startUrl, topic = 'robotics-companies' } = req.body;
-        const crawl = await crawlWeb({
-            startUrl,
-            maxPages: req.body.maxPages,
-            maxDepth: req.body.maxDepth,
-            requestDelayMs: req.body.requestDelayMs,
-            timeoutMs: req.body.timeoutMs
-        });
-        const session = await saveCrawl({ crawl, topic });
-        res.status(201).json({
+        const { startUrl, topic = 'robotics-companies', config } = extractCrawlRequest(req);
+
+        if (req.body.sync === true) {
+            // Synchronous path (preserves pre-Phase-9 behaviour, one HTTP trip).
+            const crawl = await crawlWeb({ startUrl, ...config });
+            const session = await saveCrawl({ crawl, topic });
+            return res.status(201).json({
+                success: true,
+                data: session,
+                resultsCount: crawl.summary.pagesCrawled,
+                mode: 'sync'
+            });
+        }
+
+        // Background path: persist immediately so the client can poll the
+        // session, then let the queue do the crawling.
+        const session = await createCrawlSession({ startUrl, topic, config });
+        const job = enqueueCrawlJob({ sessionId: session._id, startUrl, topic, config });
+        return res.status(202).json({
             success: true,
+            message: 'Crawl started in the background. Poll GET /api/crawls/:id to follow progress.',
             data: session,
-            resultsCount: crawl.summary.pagesCrawled
+            jobId: job.id,
+            jobStatus: job.status,
+            mode: 'async'
         });
     } catch (error) {
         next(error);
     }
+}
+
+function extractCrawlRequest(req) {
+    const config = {};
+    for (const key of ['maxPages', 'maxDepth', 'requestDelayMs', 'timeoutMs']) {
+        if (req.body[key] !== undefined && req.body[key] !== null) {
+            config[key] = req.body[key];
+        }
+    }
+    return { startUrl: req.body.startUrl, topic: req.body.topic, config };
 }
 
 // GET /api/crawls — list sessions, newest first, with pagination.

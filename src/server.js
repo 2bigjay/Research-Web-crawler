@@ -8,8 +8,10 @@ import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
 import { apiLimiter, crawlLimiter, limiterStateText } from './middlewares/rateLimiters.js';
 import { securityHeaders, corsPolicy, securityStateText } from './middlewares/securityMiddleware.js';
 import { authStateText } from './middlewares/authMiddleware.js';
+import { startScheduler, schedulerConfig } from './services/schedulerService.js';
 import crawlerRoutes from './routes/crawlerRoutes.js';
 import researchRoutes from './routes/researchRoutes.js';
+import jobRoutes from './routes/jobRoutes.js';
 import './services/extractors/index.js'; // register research topic extractors
 
 // Load variables from the .env file into process.env.
@@ -39,6 +41,9 @@ app.get('/api/health', (req, res) => {
             cors: securityStateText(),
             auth: authStateText()
         },
+        automation: {
+            scheduler: schedulerConfig()
+        },
         timestamp: new Date().toISOString()
     });
 });
@@ -49,6 +54,7 @@ app.get('/api/health', (req, res) => {
 // requireApiKey guard when auth is enabled (Phase 8).
 app.use('/api/crawls', apiLimiter, crawlLimiter, crawlerRoutes);
 app.use('/api/research', apiLimiter, researchRoutes);
+app.use('/api/jobs', apiLimiter, jobRoutes);
 
 // 404 handler — runs when no other route matched the request.
 app.use(notFound);
@@ -63,9 +69,13 @@ const PORT = process.env.PORT || 4000;
 // Phase 6: try to connect to MongoDB only when configured. The server must
 // still boot without a database (health checks and Phase 1–5 demos work fine),
 // so a missing or failing connection is a warning, not a crash.
+// Phase 9: the scheduler is started once connected — it needs the DB.
 if (process.env.MONGODB_URI) {
     connectDatabase()
-        .then(() => console.log(`Connected to MongoDB (${databaseStatusText()})`))
+        .then(() => {
+            console.log(`Connected to MongoDB (${databaseStatusText()})`);
+            startScheduler();
+        })
         .catch((error) => console.warn(`MongoDB connection failed: ${error.message}`));
 } else {
     console.warn('MONGODB_URI not set — running without a database. Set it in .env to enable persistence.');

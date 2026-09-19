@@ -1,8 +1,12 @@
 // src/services/researchService.js
 //
-// Phase 6: business logic for persisting and reading research data.
-// It composes the pipeline (crawl → extract → clean) with Mongo persistence,
-// and exposes query helpers the future REST API (Phase 7) will depend on.
+// Phase 6/9: business logic for persisting and reading research data.
+// It composes the pipeline (crawl → extract → clean) with Mongo persistence.
+//
+// Phase 9 added an ASYNC lifecycle: a session is created as RUNNING up front,
+// filled in when the crawl finishes, and marked COMPLETED or FAILED by the job
+// worker. saveCrawl() (the old synchronous all-in-one) stays as the CLI-harness
+// path, composed from the same building blocks.
 
 import CrawlSession from '../models/CrawlSession.js';
 import ResearchResult from '../models/ResearchResult.js';
@@ -18,33 +22,56 @@ function requireDatabase() {
     }
 }
 
-// Persist one finished crawl (crawlWeb result) as a CrawlSession plus one
-// ResearchResult per crawled page. Returns the created session.
-export async function saveCrawl({ crawl, topic }) {
+// Create the RUNNING session row a background job will later complete or fail.
+// Optional `crawl` pre-fills the resolved config (when known before crawling).
+export async function createCrawlSession({ startUrl, topic, config = null, runType = 'manual' }) {
     requireDatabase();
+    return CrawlSession.create({
+        startUrl,
+        topic,
+        status: 'RUNNING',
+        config,
+        runType
+    });
+}
 
+// Mark a session COMPLETED with its final summary, error list and endTime.
+export async function completeCrawlSession(sessionId, { summary, errors }) {
+    return CrawlSession.findByIdAndUpdate(
+        sessionId,
+        { status: 'COMPLETED', summary, crawlErrors: errors ?? [], endTime: new Date(), failure: null },
+        { returnDocument: 'after' }
+    );
+}
+
+// Mark a session FAILED and record why. Best-effort: the DB may itself be the
+// reason, so a failure to record is logged, not thrown.
+export async function failCrawlSession(sessionId, error) {
+    try {
+        return await CrawlSession.findByIdAndUpdate(
+            sessionId,
+            { status: 'FAILED', failure: error?.message ?? String(error), endTime: new Date() },
+            { returnDocument: 'after' }
+        );
+    } catch (recordError) {
+        console.error('Could not record session failure:', recordError.message);
+        return null;
+    }
+}
+
+// One extracted+cleaned ResearchResult document per crawled page.
+export async function saveResearchResults(sessionId, crawl, topic) {
+    requireDatabase();
     if (!topic) {
-        throw new Error('saveCrawl requires a "topic" to structure the research results.');
+        throw new Error('saveResearchResults requires a "topic" to structure the research results.');
     }
 
     const now = new Date();
-    const session = await CrawlSession.create({
-        startUrl: crawl.startUrl,
-        topic,
-        status: 'COMPLETED',
-        config: crawl.config,
-        summary: crawl.summary,
-        crawlErrors: crawl.errors,
-        startTime: now,
-        endTime: now
-    });
-
-    // One extracted+cleaned research item per crawled page.
     const resultDocs = crawl.results.map((page) => {
         const item = extractResearch({ ...page.scraped, url: page.url }, topic);
         const cleaned = cleanResearchItem(item);
         return {
-            session: session._id,
+            session: sessionId,
             topic,
             url: page.url,
             title: page.title ?? '',
@@ -62,8 +89,17 @@ export async function saveCrawl({ crawl, topic }) {
         // duplicates would be rejected rather than silently doubling.
         await ResearchResult.insertMany(resultDocs);
     }
+    return resultDocs.length;
+}
 
-    return session;
+// Synchronous all-in-one path (Phase 6 CLI harness): a finished crawl becomes
+// a single session + N results. Kept for db-demo compatibility.
+export async function saveCrawl({ crawl, topic }) {
+    requireDatabase();
+
+    const session = await createCrawlSession({ startUrl: crawl.startUrl, topic, config: crawl.config, runType: 'sync' });
+    await saveResearchResults(session._id, crawl, topic);
+    return completeCrawlSession(session._id, { summary: crawl.summary, errors: crawl.errors });
 }
 
 export async function getCrawlSession(sessionId) {

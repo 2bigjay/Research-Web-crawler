@@ -45,9 +45,15 @@ router.post('/', requireApiKey, [
         .optional({ values: 'falsy' })
         .isInt({ min: 1000, max: 120000 })
         .withMessage('timeoutMs must be an integer between 1000 and 120000')
-        .toInt()
+        .toInt(),
+    body('sync')
+        .optional({ values: 'falsy' })
+        .isBoolean()
+        .withMessage('sync must be true or false')
+        .toBoolean()
 ], validate, startCrawl);
 
+// GET /api/crawls — list sessions, newest first, with pagination.
 router.get('/', [
     query('limit')
         .optional({ values: 'falsy' })
